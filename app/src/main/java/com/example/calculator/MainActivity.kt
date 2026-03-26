@@ -3,6 +3,7 @@ package com.example.calculator
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.Canvas
@@ -26,15 +27,35 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -44,19 +65,121 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import com.example.calculator.ui.PasswordSetupScreen
+import com.example.calculator.ui.PasswordVerificationScreen
+import com.example.calculator.ui.HiddenVaultScreen
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 
 class MainActivity : ComponentActivity() {
     private val viewModel: CalculatorViewModel by viewModels()
+    private lateinit var securityManager: SecurityManager
+    private lateinit var vaultManager: HiddenVaultManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // Initialize SecurityManager for password handling
+        securityManager = SecurityManager(this)
+        
+        // Initialize HiddenVaultManager for vault storage
+        vaultManager = HiddenVaultManager(this)
+        
+        // Initialize SharedPreferences for history persistence
+        viewModel.initializeSharedPreferences(this)
+        
         setContent {
             CalculatorTheme {
-                CalculatorScreen(viewModel)
+                MainScreen(
+                    viewModel = viewModel,
+                    securityManager = securityManager,
+                    vaultManager = vaultManager,
+                    activity = this
+                )
             }
+        }
+    }
+    
+    override fun onPause() {
+        super.onPause()
+        // Close vault when app goes to background
+        viewModel.closeVault()
+    }
+}
+
+@Composable
+fun MainScreen(
+    viewModel: CalculatorViewModel,
+    securityManager: SecurityManager,
+    vaultManager: HiddenVaultManager,
+    activity: MainActivity
+) {
+    var appState by remember { mutableStateOf<AppState>(if (securityManager.isPasswordSet()) AppState.CalculatorReady else AppState.SetupPassword) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Handle lifecycle events to ensure vault is closed on pause
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                viewModel.closeVault()
+                appState = AppState.CalculatorReady
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // Listen for vault open signal
+    LaunchedEffect(viewModel.shouldOpenVault) {
+        if (viewModel.shouldOpenVault) {
+            appState = AppState.VaultOpen
+        }
+    }
+
+    // Handle back button based on current state
+    BackHandler(enabled = appState != AppState.SetupPassword) {
+        when (appState) {
+            AppState.CalculatorReady -> {
+                // Exit app when back is pressed from calculator
+                activity.finishAffinity()
+            }
+            AppState.VaultOpen -> {
+                // Exit vault and go back to calculator
+                viewModel.closeVault()
+                appState = AppState.CalculatorReady
+            }
+            else -> {
+                // Don't handle back during password setup
+            }
+        }
+    }
+
+    when (appState) {
+        AppState.SetupPassword -> {
+            PasswordSetupScreen(onPasswordSet = { password ->
+                securityManager.setPassword(password)
+                appState = AppState.CalculatorReady
+            })
+        }
+        AppState.CalculatorReady -> {
+            CalculatorScreen(viewModel)
+        }
+        AppState.VaultOpen -> {
+            HiddenVaultScreen(
+                vaultManager = vaultManager,
+                onExitVault = {
+                    viewModel.closeVault()
+                    appState = AppState.CalculatorReady
+                },
+                onBackPressed = {
+                    viewModel.closeVault()
+                    appState = AppState.CalculatorReady
+                }
+            )
         }
     }
 }
@@ -78,6 +201,12 @@ fun CalculatorScreen(viewModel: CalculatorViewModel) {
             LandscapeCalculator(viewModel)
         }
     }
+}
+
+enum class AppState {
+    SetupPassword,
+    CalculatorReady,
+    VaultOpen
 }
 
 @Composable

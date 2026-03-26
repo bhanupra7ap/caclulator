@@ -1,9 +1,13 @@
 package com.example.calculator
 
+import android.content.Context
+import android.content.SharedPreferences
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.log10
@@ -14,6 +18,10 @@ data class HistoryItem(
 )
 
 class CalculatorViewModel : ViewModel() {
+    private lateinit var sharedPreferences: SharedPreferences
+    private val gson = Gson()
+    private val historyKey = "calculator_history"
+    
     var display by mutableStateOf("0")
         private set
     
@@ -32,9 +40,38 @@ class CalculatorViewModel : ViewModel() {
     var isShowingHistory by mutableStateOf(false)
         private set
 
+    var shouldOpenVault by mutableStateOf(false)
+        private set
+
     private var previousValue = 0.0
     private var currentOperationInternal: String? = null
     private var shouldResetDisplay = false
+    private var securityManager: SecurityManager? = null
+
+    fun initializeSharedPreferences(context: Context) {
+        sharedPreferences = context.getSharedPreferences("calculator_prefs", Context.MODE_PRIVATE)
+        loadHistory()
+        securityManager = SecurityManager(context)
+    }
+
+    private fun loadHistory() {
+        val historyJson = sharedPreferences.getString(historyKey, null)
+        history = if (historyJson != null) {
+            try {
+                val type = object : TypeToken<List<HistoryItem>>() {}.type
+                gson.fromJson(historyJson, type) ?: emptyList()
+            } catch (e: Exception) {
+                emptyList()
+            }
+        } else {
+            emptyList()
+        }
+    }
+
+    private fun saveHistory() {
+        val historyJson = gson.toJson(history)
+        sharedPreferences.edit().putString(historyKey, historyJson).apply()
+    }
 
     fun onNumberClick(number: String) {
         if (shouldResetDisplay) {
@@ -84,6 +121,18 @@ class CalculatorViewModel : ViewModel() {
     }
 
     fun onEqualsClick() {
+        // Check if the display matches the password to open the vault
+        if (securityManager?.isPasswordSet() == true && 
+            currentOperationInternal == null && 
+            display.isNotEmpty() && 
+            display != "0") {
+            if (securityManager?.verifyPassword(display) == true) {
+                shouldOpenVault = true
+                onClear()
+                return
+            }
+        }
+
         if (currentOperationInternal != null) {
             val current = display.toDoubleOrNull() ?: 0.0
             secondOperand = display
@@ -106,6 +155,7 @@ class CalculatorViewModel : ViewModel() {
             val expression = "$previousValue $displayOp $current"
             val historyItem = HistoryItem(expression, resultStr)
             history = listOf(historyItem) + history
+            saveHistory()
             
             display = resultStr
             // Keep previousDisplay, currentOperation and secondOperand visible
@@ -191,6 +241,11 @@ class CalculatorViewModel : ViewModel() {
 
     fun clearHistory() {
         history = emptyList()
+        sharedPreferences.edit().remove(historyKey).apply()
+    }
+
+    fun closeVault() {
+        shouldOpenVault = false
     }
 }
 
