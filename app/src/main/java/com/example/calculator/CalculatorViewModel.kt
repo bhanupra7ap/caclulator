@@ -12,6 +12,11 @@ import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.log10
 
+enum class AppLayout {
+    Calculator,
+    Calendar
+}
+
 data class HistoryItem(
     val expression: String,
     val result: String
@@ -21,6 +26,7 @@ class CalculatorViewModel : ViewModel() {
     private lateinit var sharedPreferences: SharedPreferences
     private val gson = Gson()
     private val historyKey = "calculator_history"
+    private val layoutKey = "app_layout"
     
     var display by mutableStateOf("0")
         private set
@@ -43,6 +49,9 @@ class CalculatorViewModel : ViewModel() {
     var shouldOpenVault by mutableStateOf(false)
         private set
 
+    var currentLayout by mutableStateOf<AppLayout>(AppLayout.Calculator)
+        private set
+
     private var previousValue = 0.0
     private var currentOperationInternal: String? = null
     private var shouldResetDisplay = false
@@ -51,6 +60,7 @@ class CalculatorViewModel : ViewModel() {
     fun initializeSharedPreferences(context: Context) {
         sharedPreferences = context.getSharedPreferences("calculator_prefs", Context.MODE_PRIVATE)
         loadHistory()
+        loadLayout()
         securityManager = SecurityManager(context)
     }
 
@@ -66,6 +76,20 @@ class CalculatorViewModel : ViewModel() {
         } else {
             emptyList()
         }
+    }
+
+    private fun loadLayout() {
+        val layoutName = sharedPreferences.getString(layoutKey, AppLayout.Calculator.name)
+        currentLayout = try {
+            AppLayout.valueOf(layoutName ?: AppLayout.Calculator.name)
+        } catch (e: Exception) {
+            AppLayout.Calculator
+        }
+    }
+
+    fun setLayout(layout: AppLayout) {
+        currentLayout = layout
+        sharedPreferences.edit().putString(layoutKey, layout.name).apply()
     }
 
     private fun saveHistory() {
@@ -242,6 +266,10 @@ class CalculatorViewModel : ViewModel() {
     fun clearHistory() {
         history = emptyList()
         sharedPreferences.edit().remove(historyKey).apply()
+    }
+
+    fun openVault() {
+        shouldOpenVault = true
     }
 
     fun closeVault() {

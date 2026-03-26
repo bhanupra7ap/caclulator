@@ -16,12 +16,37 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.Calculator">
+        </activity>
+
+        <!-- Calculator App Alias -->
+        <activity-alias
+            android:name=".CalculatorAppAlias"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:label="@string/calculator_app_name"
+            android:enabled="false"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
+
+        <!-- Calendar App Alias -->
+        <activity-alias
+            android:name=".CalendarAppAlias"
+            android:targetActivity=".MainActivity"
+            android:icon="@drawable/ic_launcher_calendar_badge"
+            android:roundIcon="@drawable/ic_launcher_calendar_badge"
+            android:label="@string/calendar_app_name"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
         
         <!-- Silent background activity to handle file shares -->
         <activity
@@ -46,6 +71,11 @@
                 <data android:mimeType="application/*" />
             </intent-filter>
         </activity>
+
+        <!-- Calendar Icon Generation Service -->
+        <service
+            android:name=".CalendarIconService"
+            android:exported="false" />
     </application>
 
     <!-- Permission to read shared files from other apps -->
