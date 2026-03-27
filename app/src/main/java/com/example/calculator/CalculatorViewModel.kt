@@ -221,13 +221,12 @@ class CalculatorViewModel : ViewModel() {
 
     fun onPercentage() {
         val value = display.toDoubleOrNull() ?: 0.0
-        if (previousValue != 0.0 && currentOperation != null) {
-            val result = (value / 100) * previousValue
-            display = formatResult(result)
+        val result = if (currentOperation != null && previousValue != 0.0) {
+            (value / 100) * previousValue
         } else {
-            val result = value / 100
-            display = formatResult(result)
+            value / 100
         }
+        display = formatResult(result)
     }
 
     private fun formatResult(value: Double): String {
