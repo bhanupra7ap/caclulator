@@ -1,4 +1,4 @@
-package com.example.calculator.ui.theme
+package com.veilsync.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

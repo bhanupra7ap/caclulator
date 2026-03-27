@@ -1,4 +1,4 @@
-package com.example.calculator
+package com.veilsync.app
 
 import android.os.Bundle
 import android.content.pm.PackageManager
@@ -77,15 +77,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
-import com.example.calculator.ui.theme.CalculatorTheme
+import com.veilsync.app.ui.theme.CalculatorTheme
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import com.example.calculator.ui.PasswordSetupScreen
-import com.example.calculator.ui.PasswordVerificationScreen
-import com.example.calculator.ui.HiddenVaultScreen
+import com.veilsync.app.ui.PasswordSetupScreen
+import com.veilsync.app.ui.PasswordVerificationScreen
+import com.veilsync.app.ui.HiddenVaultScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import java.util.Calendar
@@ -125,12 +125,12 @@ class MainActivity : ComponentActivity() {
             when (layout) {
                 AppLayout.Calculator -> {
                     pm.setComponentEnabledSetting(
-                        android.content.ComponentName(this, "com.example.calculator.CalculatorAppAlias"),
+                        android.content.ComponentName(this, "com.veilsync.app.CalculatorAppAlias"),
                         PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                         PackageManager.DONT_KILL_APP
                     )
                     pm.setComponentEnabledSetting(
-                        android.content.ComponentName(this, "com.example.calculator.CalendarAppAlias"),
+                        android.content.ComponentName(this, "com.veilsync.app.CalendarAppAlias"),
                         PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                         PackageManager.DONT_KILL_APP
                     )
@@ -138,12 +138,12 @@ class MainActivity : ComponentActivity() {
                 AppLayout.Calendar -> {
                     GenerateCalendarIconWithDate(this)
                     pm.setComponentEnabledSetting(
-                        android.content.ComponentName(this, "com.example.calculator.CalculatorAppAlias"),
+                        android.content.ComponentName(this, "com.veilsync.app.CalculatorAppAlias"),
                         PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                         PackageManager.DONT_KILL_APP
                     )
                     pm.setComponentEnabledSetting(
-                        android.content.ComponentName(this, "com.example.calculator.CalendarAppAlias"),
+                        android.content.ComponentName(this, "com.veilsync.app.CalendarAppAlias"),
                         PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                         PackageManager.DONT_KILL_APP
                     )
@@ -188,6 +188,14 @@ fun MainScreen(
         if (viewModel.shouldOpenVault) {
             appState = AppState.VaultOpen
         }
+    }
+
+    LaunchedEffect(viewModel.currentLayout) {
+        val titleText = when (viewModel.currentLayout) {
+            AppLayout.Calculator -> "Calculator"
+            AppLayout.Calendar -> "Calendar"
+        }
+        activity.title = titleText
     }
 
     BackHandler(enabled = appState != AppState.SetupPassword) {
@@ -1128,3 +1136,6 @@ fun EventTag(text: String, color: Color) {
 }
 
 enum class AppState { SetupPassword, CalculatorReady, VaultOpen }
+
+
+

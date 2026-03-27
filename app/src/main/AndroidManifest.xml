@@ -10,26 +10,22 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Calculator">
+        android:theme="@style/Theme.VeilSync">
         <activity
             android:name=".MainActivity"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/app_name"
-            android:theme="@style/Theme.Calculator">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            android:theme="@style/Theme.VeilSync">
         </activity>
 
-        <!-- Calculator App Alias -->
+        <!-- Calculator App Alias (Launcher Entry) -->
         <activity-alias
             android:name=".CalculatorAppAlias"
             android:targetActivity=".MainActivity"
             android:icon="@mipmap/ic_launcher"
             android:roundIcon="@mipmap/ic_launcher_round"
-            android:label="@string/calculator_app_name"
-            android:enabled="false"
+            android:label="Calculator"
+            android:enabled="true"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -37,13 +33,13 @@
             </intent-filter>
         </activity-alias>
 
-        <!-- Calendar App Alias -->
+        <!-- Calendar App Alias (Hidden by default) -->
         <activity-alias
             android:name=".CalendarAppAlias"
             android:targetActivity=".MainActivity"
             android:icon="@drawable/ic_launcher_calendar_badge"
             android:roundIcon="@drawable/ic_launcher_calendar_badge"
-            android:label="@string/calendar_app_name"
+            android:label="Calendar"
             android:enabled="false"
             android:exported="true">
             <intent-filter>

@@ -1,4 +1,4 @@
-package com.example.calculator.ui
+package com.veilsync.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,9 +39,9 @@ import android.net.Uri
 import coil.ImageLoader
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.VideoFrameDecoder
-import com.example.calculator.FileType
-import com.example.calculator.HiddenVaultManager
-import com.example.calculator.VaultFile
+import com.veilsync.app.FileType
+import com.veilsync.app.HiddenVaultManager
+import com.veilsync.app.VaultFile
 import java.io.File
 
 @Composable
@@ -756,4 +756,6 @@ fun VideoPlayerScreen(
         )
     }
 }
+
+
 

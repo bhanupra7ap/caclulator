@@ -1,4 +1,4 @@
-package com.example.calculator
+package com.veilsync.app
 
 import android.content.Context
 import android.content.pm.ShortcutInfo
@@ -167,3 +167,4 @@ fun loadCompositeIconBitmap(context: Context): Bitmap? {
         null
     }
 }
+

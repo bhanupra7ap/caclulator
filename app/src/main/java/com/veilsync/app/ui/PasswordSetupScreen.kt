@@ -1,4 +1,4 @@
-package com.example.calculator.ui
+package com.veilsync.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -183,3 +183,4 @@ private fun isValidPINFormat(password: String): Boolean {
     val allowedCharacters = setOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '%')
     return password.all { it in allowedCharacters }
 }
+

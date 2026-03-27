@@ -1,4 +1,4 @@
-package com.example.calculator
+package com.veilsync.app
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -168,3 +168,4 @@ class CalendarRepository(context: Context) {
         return calendar.timeInMillis
     }
 }
+

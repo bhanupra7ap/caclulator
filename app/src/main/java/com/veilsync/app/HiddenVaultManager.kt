@@ -1,4 +1,4 @@
-package com.example.calculator
+package com.veilsync.app
 
 import android.content.Context
 import android.net.Uri
@@ -155,3 +155,4 @@ enum class FileType {
     VIDEO,
     FILE
 }
+

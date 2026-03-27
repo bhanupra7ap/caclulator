@@ -1,4 +1,4 @@
-package com.example.calculator
+package com.veilsync.app
 
 import android.app.Service
 import android.content.Intent
@@ -122,3 +122,4 @@ class CalendarIconService : Service() {
         }
     }
 }
+

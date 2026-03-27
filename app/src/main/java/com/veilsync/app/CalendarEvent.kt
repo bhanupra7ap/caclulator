@@ -1,4 +1,4 @@
-package com.example.calculator
+package com.veilsync.app
 
 import java.io.Serializable
 import java.util.Date
@@ -11,3 +11,4 @@ data class CalendarEvent(
     val description: String = "",
     val category: String = "general" // general, holiday, personal, work, birthday, etc.
 ) : Serializable
+

@@ -1,4 +1,4 @@
-package com.example.calculator.ui
+package com.veilsync.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -135,3 +135,4 @@ fun PasswordVerificationScreen(onPasswordVerified: () -> Unit, onPasswordIncorre
         }
     }
 }
+

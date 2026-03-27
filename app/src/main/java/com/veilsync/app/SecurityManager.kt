@@ -1,4 +1,4 @@
-package com.example.calculator
+package com.veilsync.app
 
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
@@ -76,3 +76,4 @@ class SecurityManager(context: Context) {
         }
     }
 }
+

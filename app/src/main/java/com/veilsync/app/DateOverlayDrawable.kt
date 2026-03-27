@@ -1,4 +1,4 @@
-package com.example.calculator
+package com.veilsync.app
 
 import android.graphics.*
 import android.graphics.drawable.Drawable
@@ -66,3 +66,4 @@ class crDateOverlayDrawable(
 
     override fun getIntrinsicHeight(): Int = baseDrawable.intrinsicHeight
 }
+

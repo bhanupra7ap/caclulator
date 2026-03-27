@@ -1,4 +1,4 @@
-package com.example.calculator
+package com.veilsync.app
 
 import org.junit.Test
 

@@ -1,4 +1,4 @@
-package com.example.calculator
+package com.veilsync.app
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -95,3 +95,4 @@ class ShareReceiverActivity : ComponentActivity() {
         }
     }
 }
+
