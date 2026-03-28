@@ -243,11 +243,19 @@ fun CalculatorScreen(viewModel: CalculatorViewModel, onLayoutChanged: (AppLayout
                 if (maxHeight > maxWidth) {
                     PortraitCalculator(viewModel, onLayoutChanged)
                 } else {
-                    LandscapeCalculator(viewModel)
+                    LandscapeCalculator(viewModel, onLayoutChanged)
                 }
             }
         }
-        AppLayout.Calendar -> CalendarView(viewModel, onLayoutChanged)
+        AppLayout.Calendar -> {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+                if (maxHeight > maxWidth) {
+                    CalendarView(viewModel, onLayoutChanged)
+                } else {
+                    LandscapeCalendarView(viewModel, onLayoutChanged)
+                }
+            }
+        }
     }
 }
 
@@ -358,10 +366,183 @@ fun PortraitCalculator(viewModel: CalculatorViewModel, onLayoutChanged: (AppLayo
 }
 
 @Composable
-fun LandscapeCalculator(viewModel: CalculatorViewModel) {
-    Row(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = viewModel.display, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End, color = Color.White, fontSize = 48.sp)
+fun LandscapeCalculator(viewModel: CalculatorViewModel, onLayoutChanged: (AppLayout) -> Unit = {}) {
+    val density = LocalDensity.current
+    val navBarHeight = with(density) { WindowInsets.navigationBars.getBottom(density).toDp() }
+    var showLayoutSelector by remember { mutableStateOf(false) }
+    
+    Row(modifier = Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = navBarHeight + 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        // Left side - Display and controls
+        Column(modifier = Modifier.weight(0.35f).fillMaxHeight()) {
+            // Layout selector button
+            IconButton(onClick = { showLayoutSelector = true }, modifier = Modifier.size(32.dp)) {
+                Canvas(modifier = Modifier.size(28.dp)) {
+                    drawCircle(color = Color.Transparent, radius = 3.dp.toPx(), style = Stroke(width = 1.5.dp.toPx()))
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // Operation history (if something is displayed)
+            if (viewModel.previousDisplay.isNotEmpty()) {
+                Text(
+                    text = "${viewModel.previousDisplay} ${viewModel.currentOperation} ${viewModel.secondOperand}",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 8.dp),
+                    textAlign = TextAlign.End,
+                    color = Color.Gray,
+                    fontSize = 16.sp,
+                    maxLines = 2
+                )
+            }
+            
+            // Main display
+            Text(
+                text = viewModel.display,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = 8.dp),
+                textAlign = TextAlign.End,
+                color = Color.White,
+                fontSize = if (viewModel.display.length > 8) 32.sp else 48.sp,
+                fontWeight = FontWeight.Light,
+                maxLines = 1
+            )
+            
+            // History view - Takes middle space when shown
+            if (viewModel.isShowingHistory) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .background(Color(0xFF1C1C1E), RoundedCornerShape(12.dp))
+                        .padding(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "History", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        IconButton(onClick = { viewModel.clearHistory() }, modifier = Modifier.size(20.dp)) {
+                            Text(text = "Clear", color = Color(0xFFFF9F0A), fontSize = 9.sp)
+                        }
+                    }
+                    HorizontalDivider(color = Color(0xFF3A3A3C), thickness = 0.5.dp)
+                    LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                        items(viewModel.history) { item ->
+                            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Text(text = item.expression, color = Color.Gray, fontSize = 10.sp)
+                                Text(text = "= ${item.result}", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                            }
+                            HorizontalDivider(color = Color(0xFF3A3A3C), thickness = 0.5.dp)
+                        }
+                    }
+                }
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
+            }
+            
+            // Control buttons row - Always at bottom
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // History button (Clock icon)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1.2f)
+                        .background(Color(0xFF333333), RoundedCornerShape(12.dp))
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { viewModel.toggleHistory() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.size(14.dp)) {
+                        drawCircle(color = if (viewModel.isShowingHistory) Color(0xFFFF9F0A) else Color.White, radius = 7.dp.toPx(), style = Stroke(width = 1.dp.toPx()))
+                        val centerX = size.width / 2
+                        val centerY = size.height / 2
+                        drawLine(color = if (viewModel.isShowingHistory) Color(0xFFFF9F0A) else Color.White, start = Offset(centerX, centerY), end = Offset(centerX, centerY - 3.dp.toPx()), strokeWidth = 1.dp.toPx())
+                        drawLine(color = if (viewModel.isShowingHistory) Color(0xFFFF9F0A) else Color.White, start = Offset(centerX, centerY), end = Offset(centerX + 2.5.dp.toPx(), centerY), strokeWidth = 1.dp.toPx())
+                    }
+                }
+                
+                // Backspace button
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1.2f)
+                        .background(Color(0xFF333333), RoundedCornerShape(12.dp))
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { viewModel.onDelete() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "⌫", color = Color.White, fontSize = 16.sp)
+                }
+            }
+        }
+        
+        // Right side - Calculator buttons
+        Column(modifier = Modifier.weight(0.65f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            val buttons = listOf(
+                listOf("C", "+/-", "%", "÷"),
+                listOf("7", "8", "9", "×"),
+                listOf("4", "5", "6", "−"),
+                listOf("1", "2", "3", "+"),
+                listOf("+/-", "0", ".", "=")
+            )
+            
+            buttons.forEach { row ->
+                Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    row.forEach { label ->
+                        val isOrange = label in listOf("÷", "×", "−", "+", "=")
+                        val isGray = label in listOf("C", "+/-", "%")
+                        val isZero = label == "0"
+                        
+                        Box(
+                            modifier = Modifier
+                                .weight(if (isZero) 2f else 1f)
+                                .fillMaxHeight()
+                                .background(
+                                    when {
+                                        isOrange -> Color(0xFFFF9F0A)
+                                        isGray -> Color(0xFFA5A5A5)
+                                        else -> Color(0xFF333333)
+                                    },
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                                    when (label) {
+                                        "C" -> viewModel.onClear()
+                                        "+/-" -> viewModel.onPlusMinus()
+                                        "%" -> viewModel.onPercentage()
+                                        "÷" -> viewModel.onOperationClick("/")
+                                        "×" -> viewModel.onOperationClick("*")
+                                        "−" -> viewModel.onOperationClick("-")
+                                        "+" -> viewModel.onOperationClick("+")
+                                        "=" -> viewModel.onEqualsClick()
+                                        "." -> viewModel.onDecimalClick()
+                                        else -> viewModel.onNumberClick(label)
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                color = if (isGray) Color.Black else Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (showLayoutSelector) {
+            LayoutSelectorDialog(currentLayout = viewModel.currentLayout, onLayoutSelected = { layout -> viewModel.setLayout(layout); onLayoutChanged(layout); showLayoutSelector = false }, onDismiss = { showLayoutSelector = false })
         }
     }
 }
@@ -405,6 +586,357 @@ fun LayoutCard(name: String, drawableRes: Int, isSelected: Boolean, onClick: () 
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(text = name, color = Color.White, fontSize = 14.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, textAlign = TextAlign.Center)
+    }
+}
+
+@Composable
+fun LandscapeCalendarView(viewModel: CalculatorViewModel, onLayoutChanged: (AppLayout) -> Unit = {}) {
+    val density = LocalDensity.current
+    val navBarHeight = with(density) { WindowInsets.navigationBars.getBottom(density).toDp() }
+    var showLayoutSelector by remember { mutableStateOf(false) }
+    var showAddEventDialog by remember { mutableStateOf(false) }
+    var showYearPicker by remember { mutableStateOf(false) }
+    var showSearchDialog by remember { mutableStateOf(false) }
+    var selectedDateForEvent by remember { mutableStateOf<Long?>(null) }
+    
+    val calendar = remember { Calendar.getInstance() }
+    var displayCalendar by remember { mutableStateOf(Calendar.getInstance()) }
+    var allEvents by remember { mutableStateOf(emptyList<CalendarEvent>()) }
+    var selectedDayEvents by remember { mutableStateOf(emptyList<CalendarEvent>()) }
+    var eventToDelete by remember { mutableStateOf<CalendarEvent?>(null) }
+    
+    val context = LocalContext.current
+    val repository = remember { CalendarRepository(context) }
+    
+    LaunchedEffect(Unit) {
+        repository.importDefaultEvents()
+        allEvents = repository.getEvents()
+    }
+    
+    fun updateEventsForMonth() {
+        allEvents = repository.getEvents()
+    }
+    
+    fun onDaySelected(dayNum: Int) {
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.YEAR, displayCalendar.get(Calendar.YEAR))
+            set(Calendar.MONTH, displayCalendar.get(Calendar.MONTH))
+            set(Calendar.DAY_OF_MONTH, dayNum)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        selectedDateForEvent = cal.timeInMillis
+        selectedDayEvents = repository.getEventsByDate(cal.timeInMillis)
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        Row(modifier = Modifier.fillMaxSize().padding(bottom = navBarHeight)) {
+            // Left side: Calendar grid (55%)
+            Column(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.55f).padding(horizontal = 8.dp, vertical = 12.dp)) {
+                // Top controls for calendar
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Menu",
+                        tint = Color.White,
+                        modifier = Modifier.size(40.dp).alpha(0f).clickable { showLayoutSelector = true }
+                    )
+                    
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clickable {
+                                displayCalendar = Calendar.getInstance().apply {
+                                    time = displayCalendar.time
+                                    add(Calendar.MONTH, -1)
+                                }
+                                updateEventsForMonth()
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Previous Month",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    
+                    val monthName = SimpleDateFormat("MMM yyyy", Locale.getDefault()).format(displayCalendar.time).uppercase()
+                    Text(text = monthName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                    
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clickable {
+                                displayCalendar = Calendar.getInstance().apply {
+                                    time = displayCalendar.time
+                                    add(Calendar.MONTH, 1)
+                                }
+                                updateEventsForMonth()
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Next Month",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp).rotate(180f)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider(color = Color.DarkGray, thickness = 0.5.dp)
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Days of week
+                val daysOfWeek = listOf("M", "T", "W", "T", "F", "S", "S")
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                    daysOfWeek.forEachIndexed { index, day ->
+                        Text(text = day, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (index == 6) Color(0xFFD32F2F) else Color.Gray, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                HorizontalDivider(color = Color.DarkGray, thickness = 0.5.dp)
+
+                val displayCal = Calendar.getInstance().apply { time = displayCalendar.time; set(Calendar.DAY_OF_MONTH, 1) }
+                val firstDayOfWeek = displayCal.get(Calendar.DAY_OF_WEEK)
+                val shiftedFirstDay = (firstDayOfWeek + 5) % 7
+                val daysInMonth = displayCal.getActualMaximum(Calendar.DAY_OF_MONTH)
+                val prevMonthMaxDays = Calendar.getInstance().apply { time = displayCalendar.time; add(Calendar.MONTH, -1) }.getActualMaximum(Calendar.DAY_OF_MONTH)
+                val today = Calendar.getInstance()
+
+                // Calendar grid
+                Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    repeat(6) { week ->
+                        Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.SpaceAround) {
+                            repeat(7) { day ->
+                                val cellIndex = week * 7 + day
+                                val (dayNum, isCurrentMonth) = when {
+                                    cellIndex < shiftedFirstDay -> (prevMonthMaxDays - (shiftedFirstDay - cellIndex - 1)) to false
+                                    cellIndex < shiftedFirstDay + daysInMonth -> (cellIndex - shiftedFirstDay + 1) to true
+                                    else -> (cellIndex - (shiftedFirstDay + daysInMonth) + 1) to false
+                                }
+                                
+                                val isToday = isCurrentMonth && 
+                                    today.get(Calendar.YEAR) == displayCal.get(Calendar.YEAR) && 
+                                    today.get(Calendar.MONTH) == displayCal.get(Calendar.MONTH) && 
+                                    today.get(Calendar.DAY_OF_MONTH) == dayNum
+                                
+                                val dayDate = Calendar.getInstance().apply {
+                                    set(Calendar.YEAR, displayCal.get(Calendar.YEAR))
+                                    set(Calendar.MONTH, displayCal.get(Calendar.MONTH))
+                                    set(Calendar.DAY_OF_MONTH, dayNum)
+                                    set(Calendar.HOUR_OF_DAY, 0)
+                                    set(Calendar.MINUTE, 0)
+                                    set(Calendar.SECOND, 0)
+                                    set(Calendar.MILLISECOND, 0)
+                                }
+                                
+                                val dayEvents = allEvents.filter { event ->
+                                    val eventCal = Calendar.getInstance().apply { timeInMillis = event.date }
+                                    eventCal.get(Calendar.YEAR) == dayDate.get(Calendar.YEAR) &&
+                                    eventCal.get(Calendar.MONTH) == dayDate.get(Calendar.MONTH) &&
+                                    eventCal.get(Calendar.DAY_OF_MONTH) == dayDate.get(Calendar.DAY_OF_MONTH)
+                                }
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .padding(1.dp)
+                                        .background(
+                                            color = if (isCurrentMonth && selectedDateForEvent == dayDate.timeInMillis) 
+                                                Color(0xFF333333) else Color.Transparent,
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
+                                        .clickable { 
+                                            if (isCurrentMonth) {
+                                                onDaySelected(dayNum)
+                                            }
+                                        }
+                                        .padding(2.dp),
+                                    contentAlignment = Alignment.TopCenter
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                                        Text(
+                                            text = dayNum.toString(),
+                                            fontSize = 12.sp,
+                                            color = when {
+                                                isToday -> Color.White
+                                                isCurrentMonth -> if (day == 6) Color(0xFFD32F2F) else Color.White
+                                                else -> Color.DarkGray
+                                            },
+                                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                        
+                                        // Show max 1 event indicator in compact view
+                                        if (dayEvents.isNotEmpty()) {
+                                            Text(text = "•", fontSize = 6.sp, color = Color(android.graphics.Color.parseColor(dayEvents[0].color)), lineHeight = 6.sp)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        HorizontalDivider(color = Color.DarkGray, thickness = 0.5.dp)
+                    }
+                }
+
+                // Year picker button
+                Box(modifier = Modifier.fillMaxWidth().height(32.dp).border(1.5.dp, Color.DarkGray, RoundedCornerShape(6.dp)).clickable { showYearPicker = true }, contentAlignment = Alignment.Center) {
+                    Text(text = "${displayCalendar.get(Calendar.YEAR)}", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            // Right side: Events panel (45%)
+            Column(modifier = Modifier.fillMaxHeight().fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp)) {
+                // Top action bar
+                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clickable { showSearchDialog = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = Color.White, modifier = Modifier.size(24.dp))
+                    }
+                }
+
+                HorizontalDivider(color = Color.DarkGray, thickness = 0.5.dp)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (selectedDateForEvent != null) {
+                    // Selected date info
+                    val selectedDateFormat = SimpleDateFormat("EEEE\nd MMM yyyy", Locale.getDefault()).format(selectedDateForEvent!!)
+                    Text(text = selectedDateFormat, color = Color.Gray, fontSize = 13.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Add event button
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .background(Color(0xFF333333), RoundedCornerShape(22.dp))
+                            .clickable { showAddEventDialog = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                            Icon(imageVector = Icons.Default.Add, contentDescription = "Add", tint = Color.White, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = "Add event", color = Color.White, fontSize = 14.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Events list
+                    if (selectedDayEvents.isNotEmpty()) {
+                        Text(text = "Events (${selectedDayEvents.size})", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                            items(selectedDayEvents) { event ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFF1C1C1E), RoundedCornerShape(4.dp))
+                                        .padding(8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(10.dp)
+                                            .background(
+                                                Color(android.graphics.Color.parseColor(event.color)),
+                                                shape = CircleShape
+                                            )
+                                    )
+                                    Text(text = event.title, color = Color.White, fontSize = 12.sp, modifier = Modifier.weight(1f).padding(horizontal = 6.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.Menu,
+                                        contentDescription = "Delete",
+                                        tint = Color.Red,
+                                        modifier = Modifier
+                                            .size(14.dp)
+                                            .clickable { eventToDelete = event }
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                            }
+                        }
+                    } else {
+                        Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                            Text(text = "No events", color = Color.Gray, fontSize = 12.sp, textAlign = TextAlign.Center)
+                        }
+                    }
+                } else {
+                    Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                        Text(text = "Select a day\nto view events", color = Color.Gray, fontSize = 13.sp, textAlign = TextAlign.Center)
+                    }
+                }
+            }
+        }
+
+        // Dialogs
+        if (showSearchDialog) {
+            SearchEventDialog(
+                repository = repository,
+                viewModel = viewModel,
+                context = context,
+                onDismiss = { showSearchDialog = false }
+            )
+        }
+
+        if (showAddEventDialog && selectedDateForEvent != null) {
+            AddEventDialog(
+                selectedDate = selectedDateForEvent!!,
+                repository = repository,
+                onDismiss = {
+                    showAddEventDialog = false
+                    updateEventsForMonth()
+                    onDaySelected((Calendar.getInstance().apply { timeInMillis = selectedDateForEvent!! }).get(Calendar.DAY_OF_MONTH))
+                }
+            )
+        }
+
+        if (eventToDelete != null) {
+            DeleteEventConfirmDialog(
+                event = eventToDelete!!,
+                onConfirm = {
+                    repository.deleteEvent(eventToDelete!!.id)
+                    updateEventsForMonth()
+                    onDaySelected((Calendar.getInstance().apply { timeInMillis = selectedDateForEvent ?: System.currentTimeMillis() }).get(Calendar.DAY_OF_MONTH))
+                    eventToDelete = null
+                },
+                onDismiss = { eventToDelete = null }
+            )
+        }
+
+        if (showYearPicker) {
+            YearPickerDialog(
+                currentYear = displayCalendar.get(Calendar.YEAR),
+                onYearSelected = { year ->
+                    displayCalendar = Calendar.getInstance().apply {
+                        set(Calendar.YEAR, year)
+                        set(Calendar.MONTH, displayCalendar.get(Calendar.MONTH))
+                        set(Calendar.DAY_OF_MONTH, minOf(displayCalendar.get(Calendar.DAY_OF_MONTH), getActualMaximum(Calendar.DAY_OF_MONTH)))
+                    }
+                    updateEventsForMonth()
+                    showYearPicker = false
+                },
+                onDismiss = { showYearPicker = false }
+            )
+        }
+        
+        if (showLayoutSelector) {
+            LayoutSelectorDialog(currentLayout = viewModel.currentLayout, onLayoutSelected = { layout -> viewModel.setLayout(layout); onLayoutChanged(layout); showLayoutSelector = false }, onDismiss = { showLayoutSelector = false })
+        }
     }
 }
 

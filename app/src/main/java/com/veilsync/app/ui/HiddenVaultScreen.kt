@@ -27,10 +27,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.filled.Close
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -103,146 +105,31 @@ fun HiddenVaultScreen(
                 onRefresh = { vaultFiles = vaultManager.getVaultFiles() }
             )
         } else {
-            // Main Albums Screen (Gallery Style)
-            val density = LocalDensity.current
-            val navBarHeightPx = WindowInsets.navigationBars.getBottom(density)
-            val navBarHeight = with(density) { navBarHeightPx.toDp() }
-            
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = navBarHeight)
-            ) {
-                Spacer(modifier = Modifier.height(64.dp))
+            // Main Albums Screen - detect orientation
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val isLandscape = maxHeight < maxWidth
                 
-                // Title "Albums"
-                Text(
-                    text = "Albums",
-                    fontSize = 42.sp,
-                    fontWeight = FontWeight.W500,
-                    color = Color.White,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(48.dp))
-
-                // Action Icons Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "Add",
-                        tint = Color.White,
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clickable { showAddFileDialog = true }
+                if (isLandscape) {
+                    LandscapeAlbumsScreen(
+                        vaultManager = vaultManager,
+                        galleryImageLoader = galleryImageLoader,
+                        onPicturesClick = { selectedFileType = FileType.IMAGE },
+                        onVideosClick = { selectedFileType = FileType.VIDEO },
+                        onFilesClick = { selectedFileType = FileType.FILE },
+                        onAddClick = { showAddFileDialog = true },
+                        onExitClick = onExitVault
                     )
-                    Spacer(modifier = Modifier.width(20.dp))
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(20.dp))
-                    Icon(
-                        Icons.Default.MoreVert,
-                        contentDescription = "More",
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
+                } else {
+                    PortraitAlbumsScreen(
+                        vaultManager = vaultManager,
+                        galleryImageLoader = galleryImageLoader,
+                        onPicturesClick = { selectedFileType = FileType.IMAGE },
+                        onVideosClick = { selectedFileType = FileType.VIDEO },
+                        onFilesClick = { selectedFileType = FileType.FILE },
+                        onAddClick = { showAddFileDialog = true },
+                        onExitClick = onExitVault
                     )
                 }
-
-                Spacer(modifier = Modifier.height(28.dp))
-
-                // Section Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Essential albums",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Text(
-                        text = "View all",
-                        fontSize = 16.sp,
-                        color = Color(0xFF4C6BFF),
-                        fontWeight = FontWeight.Normal,
-                        modifier = Modifier.clickable { /* View all action */ }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Grid of Albums (Only 3 folders: Pictures, Videos, Files)
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp),
-                    contentPadding = PaddingValues(bottom = 24.dp)
-                ) {
-                    // Pictures Folder
-                    item {
-                        val files = vaultManager.getFilesByType(FileType.IMAGE)
-                        AlbumCard(
-                            title = "Pictures",
-                            count = files.size,
-                            previewFile = files.firstOrNull(),
-                            vaultManager = vaultManager,
-                            imageLoader = galleryImageLoader,
-                            onClick = { selectedFileType = FileType.IMAGE }
-                        )
-                    }
-                    
-                    // Videos Folder
-                    item {
-                        val files = vaultManager.getFilesByType(FileType.VIDEO)
-                        AlbumCard(
-                            title = "Videos",
-                            count = files.size,
-                            previewFile = files.firstOrNull(),
-                            vaultManager = vaultManager,
-                            imageLoader = galleryImageLoader,
-                            onClick = { selectedFileType = FileType.VIDEO }
-                        )
-                    }
-                    
-                    // Files Folder
-                    item {
-                        val files = vaultManager.getFilesByType(FileType.FILE)
-                        AlbumCard(
-                            title = "Files",
-                            count = files.size,
-                            previewFile = null,
-                            vaultManager = vaultManager,
-                            imageLoader = galleryImageLoader,
-                            onClick = { selectedFileType = FileType.FILE }
-                        )
-                    }
-                }
-                
-                Spacer(modifier = Modifier.weight(1f))
-                
-                // Exit button
-                Text(
-                    text = "Exit Vault",
-                    color = Color.Gray,
-                    fontSize = 14.sp,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(bottom = 24.dp)
-                        .clickable { onExitVault() }
-                )
             }
         }
     }
@@ -255,6 +142,258 @@ fun HiddenVaultScreen(
                 showAddFileDialog = false
             },
             onDismiss = { showAddFileDialog = false }
+        )
+    }
+}
+
+@Composable
+fun PortraitAlbumsScreen(
+    vaultManager: HiddenVaultManager,
+    galleryImageLoader: ImageLoader,
+    onPicturesClick: () -> Unit,
+    onVideosClick: () -> Unit,
+    onFilesClick: () -> Unit,
+    onAddClick: () -> Unit,
+    onExitClick: () -> Unit
+) {
+    val density = LocalDensity.current
+    val navBarHeightPx = WindowInsets.navigationBars.getBottom(density)
+    val navBarHeight = with(density) { navBarHeightPx.toDp() }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp)
+            .padding(bottom = navBarHeight)
+    ) {
+        Spacer(modifier = Modifier.height(64.dp))
+        
+        // Title "Albums"
+        Text(
+            text = "Albums",
+            fontSize = 42.sp,
+            fontWeight = FontWeight.W500,
+            color = Color.White,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // Action Icons Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = "Add",
+                tint = Color.White,
+                modifier = Modifier
+                    .size(28.dp)
+                    .clickable { onAddClick() }
+            )
+            Spacer(modifier = Modifier.width(20.dp))
+            Icon(
+                Icons.Default.MoreVert,
+                contentDescription = "More",
+                tint = Color.White,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        // Section Header
+        Text(
+            text = "Essential albums",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Grid of Albums (Only 3 folders: Pictures, Videos, Files)
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+            contentPadding = PaddingValues(bottom = 24.dp)
+        ) {
+            // Pictures Folder
+            item {
+                val files = vaultManager.getFilesByType(FileType.IMAGE)
+                AlbumCard(
+                    title = "Pictures",
+                    count = files.size,
+                    previewFile = files.firstOrNull(),
+                    vaultManager = vaultManager,
+                    imageLoader = galleryImageLoader,
+                    onClick = onPicturesClick
+                )
+            }
+            
+            // Videos Folder
+            item {
+                val files = vaultManager.getFilesByType(FileType.VIDEO)
+                AlbumCard(
+                    title = "Videos",
+                    count = files.size,
+                    previewFile = files.firstOrNull(),
+                    vaultManager = vaultManager,
+                    imageLoader = galleryImageLoader,
+                    onClick = onVideosClick
+                )
+            }
+            
+            // Files Folder
+            item {
+                val files = vaultManager.getFilesByType(FileType.FILE)
+                AlbumCard(
+                    title = "Files",
+                    count = files.size,
+                    previewFile = null,
+                    vaultManager = vaultManager,
+                    imageLoader = galleryImageLoader,
+                    onClick = onFilesClick
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        // Exit button
+        Text(
+            text = "Exit Vault",
+            color = Color.Gray,
+            fontSize = 14.sp,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(bottom = 24.dp)
+                .clickable { onExitClick() }
+        )
+    }
+}
+
+@Composable
+fun LandscapeAlbumsScreen(
+    vaultManager: HiddenVaultManager,
+    galleryImageLoader: ImageLoader,
+    onPicturesClick: () -> Unit,
+    onVideosClick: () -> Unit,
+    onFilesClick: () -> Unit,
+    onAddClick: () -> Unit,
+    onExitClick: () -> Unit
+) {
+    val density = LocalDensity.current
+    val navBarHeightPx = WindowInsets.navigationBars.getBottom(density)
+    val navBarHeight = with(density) { navBarHeightPx.toDp() }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = navBarHeight)
+    ) {
+        // Header with title and action icons
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Albums",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.W500,
+                color = Color.White
+            )
+            
+            Row(
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Add",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable { onAddClick() }
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = "More",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        // Albums grid - 3 columns for landscape
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            // Pictures Folder
+            item {
+                val files = vaultManager.getFilesByType(FileType.IMAGE)
+                AlbumCard(
+                    title = "Pictures",
+                    count = files.size,
+                    previewFile = files.firstOrNull(),
+                    vaultManager = vaultManager,
+                    imageLoader = galleryImageLoader,
+                    onClick = onPicturesClick
+                )
+            }
+            
+            // Videos Folder
+            item {
+                val files = vaultManager.getFilesByType(FileType.VIDEO)
+                AlbumCard(
+                    title = "Videos",
+                    count = files.size,
+                    previewFile = files.firstOrNull(),
+                    vaultManager = vaultManager,
+                    imageLoader = galleryImageLoader,
+                    onClick = onVideosClick
+                )
+            }
+            
+            // Files Folder
+            item {
+                val files = vaultManager.getFilesByType(FileType.FILE)
+                AlbumCard(
+                    title = "Files",
+                    count = files.size,
+                    previewFile = null,
+                    vaultManager = vaultManager,
+                    imageLoader = galleryImageLoader,
+                    onClick = onFilesClick
+                )
+            }
+        }
+        
+        // Exit button at bottom
+        Text(
+            text = "Exit Vault",
+            color = Color.Gray,
+            fontSize = 12.sp,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(bottom = 12.dp)
+                .clickable { onExitClick() }
         )
     }
 }
@@ -357,83 +496,88 @@ fun FolderFilesScreen(
     val navBarHeightPx = WindowInsets.navigationBars.getBottom(density)
     val navBarHeight = with(density) { navBarHeightPx.toDp() }
     
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(bottom = navBarHeight)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = {
-                    if (selectionMode) {
-                        selectionMode = false
-                        selectedItems = emptySet()
-                    } else {
-                        onBack()
-                    }
-                }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                }
-                Text(
-                    text = if (selectionMode) "${selectedItems.size} selected" else type.toString().lowercase().replaceFirstChar { it.uppercase() } + "s",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-            
-            if (selectionMode && selectedItems.isNotEmpty()) {
-                IconButton(onClick = { showDeleteConfirm = true }) {
-                    Text("🗑️", fontSize = 20.sp)
-                }
-            }
-        }
-
-        val files = vaultManager.getFilesByType(type)
-        if (files.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No files in this folder", color = Color.Gray)
-            }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                contentPadding = PaddingValues(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val isLandscape = maxHeight < maxWidth
+        val columnCount = if (isLandscape) 5 else 3
+        
+        Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(bottom = navBarHeight)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                items(files) { file ->
-                    VaultFileGridItem(
-                        file = file,
-                        vaultManager = vaultManager,
-                        imageLoader = imageLoader,
-                        isSelected = selectedItems.contains(file.name),
-                        selectionMode = selectionMode,
-                        onSelectionToggle = {
-                            selectedItems = if (selectedItems.contains(file.name)) {
-                                selectedItems - file.name
-                            } else {
-                                selectedItems + file.name
-                            }
-                            if (selectedItems.isEmpty()) {
-                                selectionMode = false
-                            }
-                        },
-                        onLongPress = {
-                            selectionMode = true
-                            selectedItems = setOf(file.name)
-                        },
-                        onDelete = {
-                            vaultManager.deleteFile(file.name)
-                            onRefresh()
-                        },
-                        onOpen = { 
-                            if (!selectionMode) {
-                                onOpenFile(file)
-                            }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = {
+                        if (selectionMode) {
+                            selectionMode = false
+                            selectedItems = emptySet()
+                        } else {
+                            onBack()
                         }
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                    Text(
+                        text = if (selectionMode) "${selectedItems.size} selected" else type.toString().lowercase().replaceFirstChar { it.uppercase() } + "s",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
+                }
+                
+                if (selectionMode && selectedItems.isNotEmpty()) {
+                    IconButton(onClick = { showDeleteConfirm = true }) {
+                        Text("🗑️", fontSize = 20.sp)
+                    }
+                }
+            }
+
+            val files = vaultManager.getFilesByType(type)
+            if (files.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No files in this folder", color = Color.Gray)
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(columnCount),
+                    contentPadding = PaddingValues(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(files) { file ->
+                        VaultFileGridItem(
+                            file = file,
+                            vaultManager = vaultManager,
+                            imageLoader = imageLoader,
+                            isSelected = selectedItems.contains(file.name),
+                            selectionMode = selectionMode,
+                            onSelectionToggle = {
+                                selectedItems = if (selectedItems.contains(file.name)) {
+                                    selectedItems - file.name
+                                } else {
+                                    selectedItems + file.name
+                                }
+                                if (selectedItems.isEmpty()) {
+                                    selectionMode = false
+                                }
+                            },
+                            onLongPress = {
+                                selectionMode = true
+                                selectedItems = setOf(file.name)
+                            },
+                            onDelete = {
+                                vaultManager.deleteFile(file.name)
+                                onRefresh()
+                            },
+                            onOpen = { 
+                                if (!selectionMode) {
+                                    onOpenFile(file)
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -639,57 +783,169 @@ fun FileViewerScreen(
             )
         }
         else -> {
-            Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(bottom = navBarHeight)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                    Text(file.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                }
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val isLandscape = maxHeight < maxWidth
                 
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    when (file.type) {
-                        FileType.IMAGE -> {
-                            val filePath = vaultManager.getFileUri(file.name)
-                            Image(
-                                painter = rememberAsyncImagePainter(File(filePath)),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Fit
-                            )
-                        }
-                        FileType.VIDEO -> {
-                            val filePath = vaultManager.getFileUri(file.name)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clickable { isPlayingVideo = true },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(
-                                        model = File(filePath),
-                                        imageLoader = imageLoader
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Fit
-                                )
-                                Icon(
-                                    Icons.Default.PlayArrow,
-                                    contentDescription = "Play video",
-                                    modifier = Modifier.size(80.dp),
-                                    tint = Color.White
-                                )
-                            }
-                        }
-                        FileType.FILE -> {
-                            Text(vaultManager.readFile(file.name) ?: "", color = Color.White, modifier = Modifier.padding(16.dp))
-                        }
+                if (isLandscape) {
+                    LandscapeFileViewerScreen(
+                        file = file,
+                        vaultManager = vaultManager,
+                        imageLoader = imageLoader,
+                        navBarHeight = navBarHeight,
+                        onBack = onBack,
+                        onPlayVideo = { isPlayingVideo = true }
+                    )
+                } else {
+                    PortraitFileViewerScreen(
+                        file = file,
+                        vaultManager = vaultManager,
+                        imageLoader = imageLoader,
+                        navBarHeight = navBarHeight,
+                        onBack = onBack,
+                        onPlayVideo = { isPlayingVideo = true }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PortraitFileViewerScreen(
+    file: VaultFile,
+    vaultManager: HiddenVaultManager,
+    imageLoader: ImageLoader,
+    navBarHeight: Dp,
+    onBack: () -> Unit,
+    onPlayVideo: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(bottom = navBarHeight)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+            }
+            Text(file.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        }
+        
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            when (file.type) {
+                FileType.IMAGE -> {
+                    val filePath = vaultManager.getFileUri(file.name)
+                    Image(
+                        painter = rememberAsyncImagePainter(File(filePath)),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+                FileType.VIDEO -> {
+                    val filePath = vaultManager.getFileUri(file.name)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable { onPlayVideo() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = rememberAsyncImagePainter(
+                                model = File(filePath),
+                                imageLoader = imageLoader
+                            ),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                        Icon(
+                            Icons.Default.PlayArrow,
+                            contentDescription = "Play video",
+                            modifier = Modifier.size(80.dp),
+                            tint = Color.White
+                        )
                     }
+                }
+                FileType.FILE -> {
+                    Text(vaultManager.readFile(file.name) ?: "", color = Color.White, modifier = Modifier.padding(16.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LandscapeFileViewerScreen(
+    file: VaultFile,
+    vaultManager: HiddenVaultManager,
+    imageLoader: ImageLoader,
+    navBarHeight: Dp,
+    onBack: () -> Unit,
+    onPlayVideo: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(bottom = navBarHeight)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+            }
+            Text(
+                file.name,
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            when (file.type) {
+                FileType.IMAGE -> {
+                    val filePath = vaultManager.getFileUri(file.name)
+                    Image(
+                        painter = rememberAsyncImagePainter(File(filePath)),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+                FileType.VIDEO -> {
+                    val filePath = vaultManager.getFileUri(file.name)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable { onPlayVideo() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = rememberAsyncImagePainter(
+                                model = File(filePath),
+                                imageLoader = imageLoader
+                            ),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                        Icon(
+                            Icons.Default.PlayArrow,
+                            contentDescription = "Play video",
+                            modifier = Modifier.size(64.dp),
+                            tint = Color.White
+                        )
+                    }
+                }
+                FileType.FILE -> {
+                    Text(
+                        vaultManager.readFile(file.name) ?: "",
+                        color = Color.White,
+                        modifier = Modifier.padding(16.dp),
+                        fontSize = 14.sp
+                    )
                 }
             }
         }
@@ -724,36 +980,85 @@ fun VideoPlayerScreen(
         onBack()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        // Header with back button
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onExit) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Exit", tint = Color.White)
-            }
-            Text(file.name, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-        }
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val isLandscape = maxHeight < maxWidth
 
-        // Video Player
-        AndroidView(
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    player = exoPlayer
-                    useController = true
+        if (isLandscape) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+            ) {
+                // Video player takes up most space
+                AndroidView(
+                    factory = { ctx ->
+                        PlayerView(ctx).apply {
+                            player = exoPlayer
+                            useController = true
+                        }
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+                
+                // Info sidebar
+                Column(
+                    modifier = Modifier
+                        .width(120.dp)
+                        .fillMaxHeight()
+                        .background(Color(0xFF1C1C1E))
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    IconButton(onClick = onExit, modifier = Modifier.align(Alignment.End)) {
+                        Icon(Icons.Default.Close, contentDescription = "Exit", tint = Color.White, modifier = Modifier.size(20.dp))
+                    }
+                    
+                    Text(
+                        text = file.name,
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                    )
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        )
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+            ) {
+                // Header with back button
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onExit) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Exit", tint = Color.White)
+                    }
+                    Text(file.name, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                }
+
+                // Video Player
+                AndroidView(
+                    factory = { ctx ->
+                        PlayerView(ctx).apply {
+                            player = exoPlayer
+                            useController = true
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                )
+            }
+        }
     }
 }
 
